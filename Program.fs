@@ -50,5 +50,7 @@ let main argv =
         System.IO.File.ReadAllText(file)
         |> format
         |> printfn "%s"
-    | _ -> eprintfn "Usage: FsJsFormat file.js"
+    | [| file; "--save" |] ->
+        System.IO.File.WriteAllText(file, (System.IO.File.ReadAllText(file) |> format))
+    | _ -> eprintfn "Usage: FsJsFormat file.js [--save]"
     0
