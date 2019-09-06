@@ -17,16 +17,10 @@ let format (input: string) =
             match x with
             | '/' :: '/' :: rst -> formatChars (sb.Append("//")) indentLevel (InSingleLineComment rst)
             | '/' :: '*' :: rst -> formatChars (sb.Append("/*")) indentLevel (InMultiLineComment rst)
-            | c :: rst when List.contains c newLineChars ->
-                formatChars ((sb.Append(c)).AppendLine((pad indentLevel))) indentLevel (InCode rst)
-            | c :: rst when List.contains c indentChars ->
-                formatChars (((sb.Append(c)).AppendLine()).Append((pad (indentLevel + 1)))) (indentLevel + 1)
-                    (InCode rst)
-            | c :: rst when List.contains c unindentChars ->
-                formatChars (((sb.AppendLine()).Append((pad (indentLevel - 1))).Append(c))) (indentLevel - 1)
-                    (InCode rst)
-            | c :: rst when List.contains c stringDelimChars ->
-                formatChars (sb.Append(c)) indentLevel (InString(c, rst))
+            | c :: rst when List.contains c newLineChars -> formatChars (((sb.Append(c)).AppendLine()).Append((pad indentLevel))) indentLevel (InCode rst)
+            | c :: rst when List.contains c indentChars -> formatChars (((sb.Append(c)).AppendLine()).Append((pad (indentLevel + 1)))) (indentLevel + 1) (InCode rst)
+            | c :: rst when List.contains c unindentChars -> formatChars (((sb.AppendLine()).Append((pad (indentLevel - 1))).Append(c))) (indentLevel - 1) (InCode rst)
+            | c :: rst when List.contains c stringDelimChars -> formatChars (sb.Append(c)) indentLevel (InString(c, rst))
             | c :: rst -> formatChars (sb.Append(c)) indentLevel (InCode rst)
             | [] -> sb.ToString()
         | InSingleLineComment x ->
@@ -41,8 +35,7 @@ let format (input: string) =
             | [] -> sb.ToString()
         | InString(delim, x) ->
             match x with
-            | '\\' :: c :: rst when c = delim ->
-                formatChars (sb.Append("\\").Append(delim)) indentLevel (InString(delim, rst))
+            | '\\' :: c :: rst when c = delim -> formatChars (sb.Append("\\").Append(delim)) indentLevel (InString(delim, rst))
             | c :: rst when c = delim -> formatChars (sb.Append(delim)) indentLevel (InCode rst)
             | c :: rst -> formatChars (sb.Append(c)) indentLevel (InString(delim, rst))
             | [] -> sb.ToString()
