@@ -3,6 +3,7 @@
     | InMultiLineComment of char list
     | InString of char * char list
     | InCode of char list
+    | AtBeginningOfLine of char list
 
 let format (input: string) =
     let newLineChars = [ ';'; ',' ]
@@ -13,11 +14,15 @@ let format (input: string) =
 
     let rec formatChars (sb: System.Text.StringBuilder) indentLevel charList =
         match charList with
+        | AtBeginningOfLine x ->
+            match x with
+            | c :: rst when System.Char.IsWhiteSpace(c) -> formatChars sb indentLevel (AtBeginningOfLine rst)
+            | _ -> formatChars sb indentLevel (InCode x)
         | InCode x ->
             match x with
             | '/' :: '/' :: rst -> formatChars (sb.Append("//")) indentLevel (InSingleLineComment rst)
             | '/' :: '*' :: rst -> formatChars (sb.Append("/*")) indentLevel (InMultiLineComment rst)
-            | c :: rst when List.contains c newLineChars -> formatChars (((sb.Append(c)).AppendLine()).Append((pad indentLevel))) indentLevel (InCode rst)
+            | c :: rst when List.contains c newLineChars -> formatChars (((sb.Append(c)).AppendLine()).Append((pad indentLevel))) indentLevel (AtBeginningOfLine rst)
             | c :: rst when List.contains c indentChars -> formatChars (((sb.Append(c)).AppendLine()).Append((pad (indentLevel + 1)))) (indentLevel + 1) (InCode rst)
             | c :: rst when List.contains c unindentChars -> formatChars (((sb.AppendLine()).Append((pad (indentLevel - 1))).Append(c))) (indentLevel - 1) (InCode rst)
             | c :: rst when List.contains c stringDelimChars -> formatChars (sb.Append(c)) indentLevel (InString(c, rst))
@@ -40,7 +45,7 @@ let format (input: string) =
             | c :: rst -> formatChars (sb.Append(c)) indentLevel (InString(delim, rst))
             | [] -> sb.ToString()
     List.ofSeq input
-    |> InCode
+    |> AtBeginningOfLine
     |> formatChars (System.Text.StringBuilder()) 0
 
 [<EntryPoint>]
