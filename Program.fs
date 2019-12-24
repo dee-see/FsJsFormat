@@ -1,11 +1,14 @@
 ﻿open System
 
 type State =
+    | AtBeginningOfLine of char list
+    | InCode of char list
     | InSingleLineComment of char list
     | InMultiLineComment of char list
     | InString of char * char list
-    | InCode of char list
-    | AtBeginningOfLine of char list
+    | InRegex of char list
+    | InRegexFlags of char list
+    | InRegexCharacterClass of char list
 
 type Writer(textWriter) = 
     member this.TextWriter : IO.TextWriter = textWriter
@@ -43,6 +46,7 @@ let format textWriter (input: string) =
             match x with
             | '/' :: '/' :: rst -> formatChars (w.Append("//")) indentLevel (InSingleLineComment rst)
             | '/' :: '*' :: rst -> formatChars (w.Append("/*")) indentLevel (InMultiLineComment rst)
+            | '/' :: rst -> formatChars (w.Append("/")) indentLevel (InRegex rst)
             | c :: rst when List.contains c newLineChars -> formatChars (w.Append((sprintf "%O%s%s" c newLine (pad indentLevel)))) indentLevel (AtBeginningOfLine rst)
             | c :: rst when List.contains c indentChars -> 
                 let newIndent = indentLevel + 1
@@ -71,6 +75,24 @@ let format textWriter (input: string) =
             | '\\' :: c :: rst when c = delim -> formatChars (w.Append("\\").Append(delim)) indentLevel (InString(delim, rst))
             | c :: rst when c = delim -> formatChars (w.Append(delim)) indentLevel (InCode rst)
             | c :: rst -> formatChars (w.Append(c)) indentLevel (InString(delim, rst))
+            | [] -> ()
+        | InRegex x ->
+            match x with
+            | '\\' :: c :: rst -> formatChars (w.Append('\\').Append(c)) indentLevel (InRegex rst)
+            | '/' :: c :: rst when Char.IsLetter(c) -> formatChars (w.Append('/').Append(c)) indentLevel (InRegexFlags rst)
+            | '/' :: rst -> formatChars (w.Append('/')) indentLevel (InCode rst)
+            | '[' :: rst -> formatChars (w.Append('[')) indentLevel (InRegexCharacterClass rst)
+            | c :: rst -> formatChars (w.Append(c)) indentLevel (InRegex rst)
+            | [] -> ()
+        | InRegexFlags x ->
+            match x with
+            | c :: rst when Char.IsLetter(c) -> formatChars (w.Append(c)) indentLevel (InRegexFlags rst)
+            | _ -> formatChars w indentLevel (InCode x)
+        | InRegexCharacterClass x ->
+            match x with
+            | '\\' :: c :: rst -> formatChars (w.Append('\\').Append(c)) indentLevel (InRegexCharacterClass rst)
+            | ']' :: rst -> formatChars (w.Append(']')) indentLevel (InRegex rst)
+            | c :: rst -> formatChars (w.Append(c)) indentLevel (InRegexCharacterClass rst)
             | [] -> ()
 
     use writer = new Writer(textWriter)
