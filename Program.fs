@@ -55,44 +55,44 @@ let format (createWriter : unit -> IWriter) (input: string) =
     let pad indentLevel = String(' ', (max (indentLevel * 4) 0)) // Shouldn't need the max, but errors happen...
     let newLine = Environment.NewLine
 
-    let rec formatChars (sb: IWriter) indentLevel charList =
+    let rec formatChars (w: IWriter) indentLevel charList =
         match charList with
         | AtBeginningOfLine x ->
             match x with
-            | c :: rst when Char.IsWhiteSpace(c) -> formatChars sb indentLevel (AtBeginningOfLine rst)
-            | _ -> formatChars sb indentLevel (InCode x)
+            | c :: rst when Char.IsWhiteSpace(c) -> formatChars w indentLevel (AtBeginningOfLine rst)
+            | _ -> formatChars w indentLevel (InCode x)
         | InCode x ->
             match x with
-            | '/' :: '/' :: rst -> formatChars (sb.Append("//")) indentLevel (InSingleLineComment rst)
-            | '/' :: '*' :: rst -> formatChars (sb.Append("/*")) indentLevel (InMultiLineComment rst)
-            | c :: rst when List.contains c newLineChars -> formatChars (sb.Append((sprintf "%O%s%s" c newLine (pad indentLevel)))) indentLevel (AtBeginningOfLine rst)
+            | '/' :: '/' :: rst -> formatChars (w.Append("//")) indentLevel (InSingleLineComment rst)
+            | '/' :: '*' :: rst -> formatChars (w.Append("/*")) indentLevel (InMultiLineComment rst)
+            | c :: rst when List.contains c newLineChars -> formatChars (w.Append((sprintf "%O%s%s" c newLine (pad indentLevel)))) indentLevel (AtBeginningOfLine rst)
             | c :: rst when List.contains c indentChars -> 
                 let newIndent = indentLevel + 1
-                formatChars (sb.Append((sprintf "%O%s%s" c newLine (pad newIndent)))) newIndent (InCode rst)
+                formatChars (w.Append((sprintf "%O%s%s" c newLine (pad newIndent)))) newIndent (InCode rst)
             | c1 :: rst1 when List.contains c1 unindentChars -> 
                 let newIndent = indentLevel - 1
                 match rst1 with
-                | c2 :: rst2 when List.contains c2 newLineChars -> formatChars (sb.Append((sprintf "%s%s%O%O%s%s" newLine (pad newIndent) c1 c2 newLine (pad newIndent)))) newIndent (InCode rst2)
-                | c2 :: rst2 -> formatChars (sb.Append((sprintf "%s%s%O%s%s%O" newLine (pad newIndent) c1 newLine (pad newIndent) c2))) newIndent (InCode rst2)
+                | c2 :: rst2 when List.contains c2 newLineChars -> formatChars (w.Append((sprintf "%s%s%O%O%s%s" newLine (pad newIndent) c1 c2 newLine (pad newIndent)))) newIndent (InCode rst2)
+                | c2 :: rst2 -> formatChars (w.Append((sprintf "%s%s%O%s%s%O" newLine (pad newIndent) c1 newLine (pad newIndent) c2))) newIndent (InCode rst2)
                 | [] -> ()
-            | c :: rst when List.contains c stringDelimChars -> formatChars (sb.Append(c)) indentLevel (InString(c, rst))
-            | c :: rst -> formatChars (sb.Append(c)) indentLevel (InCode rst)
+            | c :: rst when List.contains c stringDelimChars -> formatChars (w.Append(c)) indentLevel (InString(c, rst))
+            | c :: rst -> formatChars (w.Append(c)) indentLevel (InCode rst)
             | [] -> ()
         | InSingleLineComment x ->
             match x with
-            | '\n' :: rst -> formatChars (sb.AppendLine()) indentLevel (InCode rst)
-            | c :: rst -> formatChars (sb.Append(c)) indentLevel (InSingleLineComment rst)
+            | '\n' :: rst -> formatChars (w.AppendLine()) indentLevel (InCode rst)
+            | c :: rst -> formatChars (w.Append(c)) indentLevel (InSingleLineComment rst)
             | [] ->()
         | InMultiLineComment x ->
             match x with
-            | '*' :: '/' :: rst -> formatChars (sb.Append("*/")) indentLevel (InCode rst)
-            | c :: rst -> formatChars (sb.Append(c)) indentLevel (InMultiLineComment rst)
+            | '*' :: '/' :: rst -> formatChars (w.Append("*/")) indentLevel (InCode rst)
+            | c :: rst -> formatChars (w.Append(c)) indentLevel (InMultiLineComment rst)
             | [] -> ()
         | InString (delim, x) ->
             match x with
-            | '\\' :: c :: rst when c = delim -> formatChars (sb.Append("\\").Append(delim)) indentLevel (InString(delim, rst))
-            | c :: rst when c = delim -> formatChars (sb.Append(delim)) indentLevel (InCode rst)
-            | c :: rst -> formatChars (sb.Append(c)) indentLevel (InString(delim, rst))
+            | '\\' :: c :: rst when c = delim -> formatChars (w.Append("\\").Append(delim)) indentLevel (InString(delim, rst))
+            | c :: rst when c = delim -> formatChars (w.Append(delim)) indentLevel (InCode rst)
+            | c :: rst -> formatChars (w.Append(c)) indentLevel (InString(delim, rst))
             | [] -> ()
 
     use writer = createWriter()
