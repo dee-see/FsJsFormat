@@ -7,47 +7,25 @@ type State =
     | InCode of char list
     | AtBeginningOfLine of char list
 
-type IWriter =
-    inherit IDisposable
-    abstract member Append: string -> IWriter
-    abstract member Append: char -> IWriter
-    abstract member AppendLine: string -> IWriter
-    abstract member AppendLine: unit -> IWriter
+type Writer(textWriter) = 
+    member this.TextWriter : IO.TextWriter = textWriter
 
-[<AbstractClass>]
-type AbstractWriter() = 
-    abstract member Stream : IO.TextWriter
+    member this.Append (str : string) =
+        this.TextWriter.Write(str)
+        this
 
-    interface IWriter with
-        member this.Append (str : string) =
-            this.Stream.Write(str)
-            this :> IWriter
+    member this.Append (c : char) =
+        this.TextWriter.Write(c)
+        this
 
-        member this.Append (c : char) =
-            this.Stream.Write(c)
-            this :> IWriter
-
-        member this.AppendLine str =
-            this.Stream.WriteLine(str)
-            this :> IWriter
-
-        member this.AppendLine() =
-            (this :> IWriter).Append('\n')
+    member this.AppendLine() =
+        this.Append('\n')
     
     interface IDisposable with
         member this.Dispose() =
-            this.Stream.Dispose()
+            this.TextWriter.Dispose()
 
-type ConsoleWriter() = 
-    inherit AbstractWriter()
-    override this.Stream = Console.Out
-
-type FileWriter(fileName) = 
-    inherit AbstractWriter()
-    let writer = IO.File.CreateText(fileName) :> IO.TextWriter
-    override this.Stream = writer
-
-let format (createWriter : unit -> IWriter) (input: string) =
+let format textWriter (input: string) =
     let newLineChars = [ ';'; ',' ]
     let indentChars = [ '{' ]
     let unindentChars = [ '}' ]
@@ -55,7 +33,7 @@ let format (createWriter : unit -> IWriter) (input: string) =
     let pad indentLevel = String(' ', (max (indentLevel * 4) 0)) // Shouldn't need the max, but errors happen...
     let newLine = Environment.NewLine
 
-    let rec formatChars (w: IWriter) indentLevel charList =
+    let rec formatChars (w: Writer) indentLevel charList =
         match charList with
         | AtBeginningOfLine x ->
             match x with
@@ -95,7 +73,7 @@ let format (createWriter : unit -> IWriter) (input: string) =
             | c :: rst -> formatChars (w.Append(c)) indentLevel (InString(delim, rst))
             | [] -> ()
 
-    use writer = createWriter()
+    use writer = new Writer(textWriter)
     List.ofSeq input
     |> AtBeginningOfLine
     |> formatChars writer 0
@@ -103,7 +81,7 @@ let format (createWriter : unit -> IWriter) (input: string) =
 [<EntryPoint>]
 let main argv =
     match argv with
-    | [| file |] -> IO.File.ReadAllText(file) |> format (fun () -> new ConsoleWriter() :> IWriter)
-    | [| file; "--save" |] -> IO.File.ReadAllText(file) |> format (fun () -> new FileWriter(file) :> IWriter)
+    | [| file |] -> IO.File.ReadAllText(file) |> format Console.Out
+    | [| file; "--save" |] -> IO.File.ReadAllText(file) |> format (IO.File.CreateText(file))
     | _ -> eprintfn "Usage: FsJsFormat file.js [--save]"
     0
