@@ -1,4 +1,6 @@
-﻿open System
+﻿module FsJsFormat
+
+open System
 
 type State =
     | AtBeginningOfLine of char list
