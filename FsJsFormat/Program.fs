@@ -96,11 +96,16 @@ let format (textWriter : IO.TextWriter) (input: string) =
 
 [<EntryPoint>]
 let main argv =
+    let usage () = eprintfn "Usage: FsJsFormat file.js [--save] or feed input through stdin"
     match argv with
+    | [| |] ->
+        match stdin.ReadToEnd() with
+        | "" -> usage ()
+        | code -> format Console.Out code
     | [| file |] -> IO.File.ReadAllText(file) |> format Console.Out
     | [| file; "--save" |] -> 
         let text = IO.File.ReadAllText(file)
         use writer = IO.File.CreateText(file)
         format writer text
-    | _ -> eprintfn "Usage: FsJsFormat file.js [--save]"
+    | _ -> usage()
     0
