@@ -51,7 +51,7 @@ let format (textWriter : IO.TextWriter) (input: string) =
                 | c2 :: rst2 when List.contains c2 unindentChars -> formatChars (Text (sprintf "%s%s%O" newLine (pad newIndent) c1)) newIndent (InCode rst1)
                 | c2 :: rst2 when List.contains c2 newLineChars -> formatChars (Text (sprintf "%s%s%O%O%s%s" newLine (pad newIndent) c1 c2 newLine (pad newIndent))) newIndent (InCode rst2)
                 | c2 :: rst2 -> formatChars (Text ((sprintf "%s%s%O%s%s%O" newLine (pad newIndent) c1 newLine (pad newIndent) c2))) newIndent (InCode rst2)
-                | [] -> ()
+                | [] -> formatChars (Text (sprintf "%s%s%O" newLine (pad newIndent) c1)) newIndent (InCode rst1)
             | c :: rst when List.contains c stringDelimChars -> formatChars (Letter c) indentLevel (InString(c, rst))
             | c :: rst -> formatChars (Letter c) indentLevel (InCode rst)
             | [] -> ()
@@ -59,7 +59,7 @@ let format (textWriter : IO.TextWriter) (input: string) =
             match x with
             | '\n' :: rst -> formatChars (Text newLine) indentLevel (InCode rst)
             | c :: rst -> formatChars (Letter c) indentLevel (InSingleLineComment rst)
-            | [] ->()
+            | [] -> ()
         | InMultiLineComment x ->
             match x with
             | '*' :: '/' :: rst -> formatChars (Text "*/") indentLevel (InCode rst)

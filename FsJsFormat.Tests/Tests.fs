@@ -21,3 +21,15 @@ let ``Nested objects`` () =
           "" ] // FIXME the test in hacked to make sure it passes even with the extra new lines...
         |> String.concat Environment.NewLine
     Assert.Equal(expected, (sw.ToString()))
+
+[<Fact>]
+let ``No final newline`` () =
+    use sw = new StringWriter()
+    let input = "{}"
+    FsJsFormat.format sw input
+    let expected = 
+        [ "{"
+          "    "
+          "}" ]
+        |> String.concat Environment.NewLine
+    Assert.Equal(expected, (sw.ToString()))
