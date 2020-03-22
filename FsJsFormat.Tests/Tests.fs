@@ -33,3 +33,15 @@ let ``No final newline`` () =
           "}" ]
         |> String.concat Environment.NewLine
     Assert.Equal(expected, (sw.ToString()))
+
+[<Fact>]
+let ``/ sign used in math doesn't trigger a regex parse`` () =
+    use sw = new StringWriter()
+    let input = "1/2;abc"
+    FsJsFormat.format sw input
+    let expected = 
+        [ "1/2;"
+          "abc" ]
+        |> String.concat Environment.NewLine
+    Assert.Equal(expected, (sw.ToString()))
+

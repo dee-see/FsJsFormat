@@ -1,3 +1,5 @@
+ON HOLD/DEAD: My naive approach to formatting hit a wall (see test added in last commit) and I'm probably not going to fix that in the near future
+
 # F# JS Formatter
 
 This is a totally-incomplete JS formatter that doesn't handle a ton of edge cases and isn't tested at all. I built it for a personal project and will patch it as it fails.
